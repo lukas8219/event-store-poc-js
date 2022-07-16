@@ -19,6 +19,13 @@ services:
     restart: always
     ports:
       - 6379:6379
+  mongo:
+    image: mongo:latest
+    ports:
+      - 27017:27017
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=example
   client:
     build: ./
     volumes:
@@ -26,6 +33,7 @@ services:
     depends_on:
       - redis
       - esdb-node1
+      - mongo
     ports:
       - 8001:8001
     entrypoint: /bin/sh
