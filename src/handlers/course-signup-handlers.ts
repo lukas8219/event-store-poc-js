@@ -1,36 +1,52 @@
 import { EventType, ResolvedEvent } from "@eventstore/db-client";
-import { CourseSignup } from "../enums/course-signup-enum";
-import { CourseModel } from "../repositories/course-repository";
+import { CourseModel } from "../repositories/course-repository.js";
 
 export function handleCourseSignupEvents(
   event: ResolvedEvent<EventType>,
-  model: CourseModel
-): CourseModel {
+  model: Partial<CourseModel>
+): Partial<CourseModel> {
   const eventType = event.event?.type;
   const data = event.event?.data || {};
   return {
-    [CourseSignup.ACCEPTED]: handleACCEPTED,
-    [CourseSignup.REQUEST]: () => {
-      return model;
-    },
-    [CourseSignup.DECLINED]: () => {
-      return model;
-    },
-    [CourseSignup.CANCELED]: handleCANCELED,
-  }[eventType as CourseSignup](model, data);
+    [CourseEvents.STUDENT_ENROLLED]: handleSTUDENT_ENROLLED,
+    [CourseEvents.CREATED]: handleCREATED,
+    [CourseEvents.STUDENT_DISENROLLED]: handleSTUDENT_DISENROLLED,
+  }[eventType as CourseEvents](model, data);
 }
 
-function handleACCEPTED(model: CourseModel, eventData: any): CourseModel {
-  return {
-    ...model,
-    enrolledStudents: [...model.enrolledStudents, eventData.userId],
-  };
+export enum CourseEvents {
+  STUDENT_ENROLLED = "student-enrolled",
+  STUDENT_DISENROLLED = "student-disenrolled",
+  CREATED = "course-created",
 }
-function handleCANCELED(model: CourseModel, eventData: any): CourseModel {
+
+function handleSTUDENT_DISENROLLED(
+  model: Partial<CourseModel>,
+  eventData: any
+): Partial<CourseModel> {
   return {
     ...model,
-    enrolledStudents: model.enrolledStudents.filter(
+    enrolledStudents: (model?.enrolledStudents || []).filter(
       (id) => id !== eventData.userId
     ),
+  };
+}
+
+function handleCREATED(
+  model: Partial<CourseModel>,
+  eventData: any
+): Partial<CourseModel> {
+  return {
+    ...eventData,
+  };
+}
+
+function handleSTUDENT_ENROLLED(
+  model: Partial<CourseModel>,
+  eventData: any
+): Partial<CourseModel> {
+  return {
+    ...model,
+    enrolledStudents: [...(model.enrolledStudents || []), eventData.userId],
   };
 }

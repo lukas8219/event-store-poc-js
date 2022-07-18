@@ -1,13 +1,16 @@
-import { EventStoreDBClient } from "@eventstore/db-client";
+import { EventStoreDBClient, streamNameFilter } from "@eventstore/db-client";
 import { Db } from "mongodb";
-import { handleCourseSignupEvents } from "../handlers/course-signup-handlers";
+import { UUID } from "bson";
+import { handleCourseSignupEvents } from "../handlers/course-signup-handlers.js";
 
 export interface CourseModel {
   id?: string;
+  name: string;
+  maxEnrollment: number;
   enrolledStudents: number[];
 }
 
-class CourseRepository {
+export class CourseRepository {
   private readonly COURSE_DASHBOARD_COLLECTION = "courses-dashboard";
 
   constructor(
@@ -31,10 +34,10 @@ class CourseRepository {
       .insertOne(dashboard);
   }
 
-  async getCourseById(id: number): Promise<CourseModel> {
+  async getCourseById(id: UUID): Promise<CourseModel> {
     const eventsStream = this.eventStoreClient.readStream(`course-${id}`);
 
-    let model: CourseModel = {
+    let model: Partial<CourseModel> = {
       enrolledStudents: [],
     };
 
@@ -42,6 +45,6 @@ class CourseRepository {
       model = handleCourseSignupEvents(event, model);
     }
 
-    return model;
+    return model as CourseModel;
   }
 }
